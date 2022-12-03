@@ -34,4 +34,25 @@ def people(request):
             serialized.save()
             return Response('Object created')
         return Response(serialized.errors)
+
+
+
+# Here we are only updating data
+@api_view(['PUT','PATCH'])
+def people1(request):
+    if request.method == 'PUT':
+        people = Person.objects.get(id=request.data['id'])
+        serialized = PersonSerial(people, data = request.data)
+        if serialized.is_valid():
+            serialized.save()
+            return Response(serialized.data)
+        return Response(serialized.errors)
+
+    if request.method == 'PATCH':
+        people = Person.objects.get(id=request.data['id'])
+        serialized = PersonSerial(people, data = request.data, partial=True)
+        if serialized.is_valid():
+            serialized.save()
+            return Response(serialized.data)
+        return Response(serialized.errors)
  
