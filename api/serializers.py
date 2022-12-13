@@ -11,3 +11,19 @@ class PersonSerial(serializers.ModelSerializer):
         fields = '__all__'
         ## We want to exclude some feilds
         # exclude = ['age']
+        depth = 1
+
+        
+    def validate(self, data):
+
+        # Feild validations
+        chars = ''' ~`!@#$%^&*()-+={[}]:;"'|\<,>.?/'''
+        
+        if  any(c in chars for c in data['name']): 
+            raise serializers.ValidationError({"name": "name can't contain spaces, speacial characters"})
+        
+        if data['age'] < 18:
+            raise serializers.ValidationError({"age": "Age should be greater than 18"})
+        
+        return data
+
