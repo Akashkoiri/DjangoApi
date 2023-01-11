@@ -4,7 +4,6 @@ from django.db import models
 class Color(models.Model):
     color_name = models.CharField(max_length=50)
 
-
     def __str__(self):
         return self.color
 
@@ -19,3 +18,11 @@ class Person(models.Model):
         return self.name
 
 
+class Driver(models.Model):
+    name = models.CharField(max_length=50)
+    car = models.CharField(max_length=30)
+    finish_time = models.IntegerField()
+
+
+    def __str__(self):
+        return self.name

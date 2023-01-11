@@ -1,7 +1,19 @@
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Person
-from .serializers import PersonSerial
+
+from .models import Person, Driver
+from .serializers import *
+from django.contrib.auth.models import User
+# Token Authentication 
+from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
+# JWT Token
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+# For setting permissions 
+from rest_framework.permissions import IsAuthenticated
+
 
 
 # Only allow GET & POST Method
@@ -37,6 +49,7 @@ def people(request):
             return {"Error": "please provide an id"}
 
         if request.data:
+            print("yes")
             if type(request.data) == list:
                 for item in request.data:
                     lst.append(get_item(item))
@@ -59,7 +72,6 @@ def people(request):
             serialized.save()
             return Response('Object created')
         return Response(serialized.errors)
-
 
 
 # Here we are only updating data
@@ -88,4 +100,90 @@ def people(request):
         people.delete()
         return Response({'message': 'Person deleted'})
 
+
+# Class based api
+class Race(APIView):
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        drivers = Driver.objects.all()
+        serialized = DriverSerial(drivers, many=True)
+        return Response({"user": str(request.user), "data" : serialized.data})
+
+
+class AllUsers(APIView):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        print(request.user)
+
+        users = User.objects.all()
+        serialized = AllUserSerial(users, many=True)
+        return Response(serialized.data)
+
+
+## This Register api use Simple Token to restrict
+# class Register(APIView):
+#     def post(self, request):
+#         serialized = UserSerial(data = request.data)
+
+#         if not serialized.is_valid():
+#             return Response(serialized.errors)
+
+#         serialized.save()
+        
+#         user = User.objects.get(username = serialized.data['username'])
+        # token = Token.objects.create(user = user)
+
+
+#         return Response({
+#             "massage": "User created", 
+#             "data": serialized.data,
+#             "token": token.key
+#         })
+
+
+## This api uses JWT Token to restrict
+class Register(APIView):
+    def post(self, request):
+        serialized = UserSerial(data = request.data)
+
+        if not serialized.is_valid():
+            return Response(serialized.errors)
+
+        serialized.save()
+        
+        user = User.objects.get(username = serialized.data['username'])
+        ref_token = RefreshToken.for_user(user)
+
+
+        return Response({
+            "massage": "User created", 
+            "data": serialized.data,
+            "JWT_token": {
+                "access": str(ref_token.access_token),
+                "refresh": str(ref_token)
+            }
+        })
+
+
+# We are overwrighting sum classes to encrypt some other data to JWT token
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Whatever datafield you want to add
+        token['username'] = user.username
+        return token
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
 
